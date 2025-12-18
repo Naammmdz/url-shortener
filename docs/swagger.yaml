@@ -1,0 +1,305 @@
+basePath: /
+definitions:
+  handler.AuthResponse:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      id:
+        example: 1
+        type: integer
+      message:
+        example: Login successful
+        type: string
+      username:
+        example: john_doe
+        type: string
+    type: object
+  handler.ClaimLinksRequest:
+    properties:
+      anonymous_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - anonymous_id
+    type: object
+  handler.CreateURLRequest:
+    properties:
+      anonymous_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      url:
+        example: https://example.com/very/long/path
+        type: string
+    required:
+    - url
+    type: object
+  handler.CreateURLResponse:
+    properties:
+      anonymous_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      original_url:
+        example: https://example.com/very/long/path
+        type: string
+      short_code:
+        example: abc12345
+        type: string
+      short_url:
+        example: http://localhost:8080/abc12345
+        type: string
+    type: object
+  handler.ErrorResponse:
+    properties:
+      error:
+        example: Invalid URL format
+        type: string
+    type: object
+  handler.LoginRequest:
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handler.RegisterRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  model.URL:
+    properties:
+      anonymous_id:
+        description: Nullable - for anonymous users
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      clicks:
+        example: 42
+        type: integer
+      created_at:
+        example: "2025-12-18T10:00:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      original_url:
+        example: https://example.com/very/long/path
+        type: string
+      short_code:
+        example: abc12345
+        type: string
+      updated_at:
+        example: "2025-12-18T10:00:00Z"
+        type: string
+      user_id:
+        description: Nullable - for logged-in users
+        example: 1
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: contact@sobanhang.com
+    name: API Support
+  description: A URL shortening service with authentication and anonymous user support
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: URL Shortener API
+  version: "2.0"
+paths:
+  /{code}:
+    get:
+      description: Redirect to the original URL using short code
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "301":
+          description: Moved Permanently
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Redirect to original URL
+      tags:
+      - urls
+  /api/auth/claim-links:
+    post:
+      consumes:
+      - application/json
+      description: Transfer ownership of anonymous links to logged-in user
+      parameters:
+      - description: Anonymous ID from cookie/localStorage
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ClaimLinksRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Links claimed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BasicAuth: []
+      summary: Claim anonymous links
+      tags:
+      - auth
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with username and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: User login
+      tags:
+      - auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Register new user
+      tags:
+      - auth
+  /api/shorten:
+    post:
+      consumes:
+      - application/json
+      description: Shorten a long URL (works for both authenticated and anonymous
+        users)
+      parameters:
+      - description: URL to shorten with optional anonymous_id
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateURLRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.CreateURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create short URL
+      tags:
+      - urls
+  /api/urls:
+    get:
+      description: Get list of shortened URLs (user's own or all if admin)
+      parameters:
+      - description: Anonymous ID to filter links
+        in: query
+        name: anonymous_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns total count and array of URLs
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List all URLs
+      tags:
+      - urls
+  /api/urls/{code}:
+    get:
+      description: Get detailed information about a shortened URL
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.URL'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get URL information
+      tags:
+      - urls
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
