@@ -29,7 +29,10 @@ import (
 // @host      localhost:8080
 // @BasePath  /
 
-// @securityDefinitions.basic  BasicAuth
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Initialize database
@@ -70,26 +73,28 @@ func main() {
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.Refresh)
 
-			// Protected: requires authentication
+			// Protected: requires JWT authentication
 			authProtected := auth.Group("")
-			authProtected.Use(middleware.RequireAuth(userService))
+			authProtected.Use(middleware.RequireJWT())
 			{
 				authProtected.POST("/claim-links", authHandler.ClaimLinks)
 			}
 		}
 
-		// URL routes with optional authentication
+		// URL routes with optional JWT authentication
 		// Creates link as authenticated user if logged in, or as anonymous if not
-		api.POST("/shorten", middleware.OptionalAuth(userService), urlHandler.CreateShortURL)
-		api.GET("/urls", middleware.OptionalAuth(userService), urlHandler.ListURLs)
+		api.POST("/shorten", middleware.OptionalJWT(), urlHandler.CreateShortURL)
+		api.GET("/urls", middleware.OptionalJWT(), urlHandler.ListURLs)
 		api.GET("/urls/:code", urlHandler.GetURLInfo)
 	}
 
 	log.Println("🚀 Server starting on :8080...")
 	log.Println("📚 Swagger docs: http://localhost:8080/swagger/index.html")
 	log.Println("👤 Anonymous users: Create links without auth")
-	log.Println("🔐 Registered users: Use Basic Auth (username:password)")
+	log.Println("🔐 Registered users: Use JWT Bearer token")
+	log.Println("🎫 Login/Register returns: access_token (15min) + refresh_token (7days)")
 	log.Println("🔗 Claim links: POST /api/auth/claim-links with anonymous_id")
 
 	if err := r.Run(":8080"); err != nil {

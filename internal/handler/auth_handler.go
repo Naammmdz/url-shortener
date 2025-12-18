@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"url-shortener/internal/middleware"
 	"url-shortener/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -31,10 +32,12 @@ type LoginRequest struct {
 }
 
 type AuthResponse struct {
-	ID       uint   `json:"id" example:"1"`
-	Username string `json:"username" example:"john_doe"`
-	Email    string `json:"email" example:"john@example.com"`
-	Message  string `json:"message" example:"Login successful"`
+	ID           uint   `json:"id" example:"1"`
+	Username     string `json:"username" example:"john_doe"`
+	Email        string `json:"email" example:"john@example.com"`
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	Message      string `json:"message" example:"Login successful"`
 }
 
 type ClaimLinksRequest struct {
@@ -64,11 +67,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	// Generate JWT tokens
+	accessToken, err := middleware.GenerateAccessToken(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := middleware.GenerateRefreshToken(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate refresh token"})
+		return
+	}
+
 	c.JSON(http.StatusCreated, AuthResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Message:  "Registration successful",
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		Message:      "Registration successful",
 	})
 }
 
@@ -95,12 +113,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Store user info in session/cookie (simplified for now)
+	// Generate JWT tokens
+	accessToken, err := middleware.GenerateAccessToken(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := middleware.GenerateRefreshToken(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate refresh token"})
+		return
+	}
+
 	c.JSON(http.StatusOK, AuthResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Message:  "Login successful",
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		Message:      "Login successful",
 	})
 }
 
@@ -113,7 +145,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Param        request body ClaimLinksRequest true "Anonymous ID from cookie/localStorage"
 // @Success      200 {object} map[string]interface{} "Links claimed successfully"
 // @Failure      400 {object} ErrorResponse
-// @Security     BasicAuth
+// @Security     BearerAuth
 // @Router       /api/auth/claim-links [post]
 func (h *AuthHandler) ClaimLinks(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
@@ -138,5 +170,59 @@ func (h *AuthHandler) ClaimLinks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Links claimed successfully",
 		"user_id": userID,
+	})
+}
+
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+type RefreshResponse struct {
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	Message      string `json:"message" example:"Token refreshed successfully"`
+}
+
+// Refresh godoc
+// @Summary      Refresh access token
+// @Description  Get new access token and refresh token using valid refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body RefreshRequest true "Refresh token"
+// @Success      200 {object} RefreshResponse
+// @Failure      401 {object} ErrorResponse
+// @Router       /api/auth/refresh [post]
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Validate refresh token
+	claims, err := middleware.ValidateToken(req.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid or expired refresh token"})
+		return
+	}
+
+	// Generate new tokens
+	accessToken, err := middleware.GenerateAccessToken(claims.UserID, claims.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := middleware.GenerateRefreshToken(claims.UserID, claims.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, RefreshResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		Message:      "Token refreshed successfully",
 	})
 }

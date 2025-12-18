@@ -80,8 +80,90 @@ http://localhost:8080/swagger/index.html
 
 ### API Endpoints
 
-#### 1. Create Short URL
+#### Authentication Endpoints
+
+##### 1. Register New User
 ```bash
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+Response (201):
+{
+  "id": 1,
+  "username": "john_doe",
+  "email": "john@example.com",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "message": "Registration successful"
+}
+```
+
+##### 2. Login
+```bash
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "john_doe",
+  "password": "password123"
+}
+
+Response (200):
+{
+  "id": 1,
+  "username": "john_doe",
+  "email": "john@example.com",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "message": "Login successful"
+}
+```
+
+##### 3. Refresh Token
+```bash
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+Response (200):
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "message": "Token refreshed successfully"
+}
+```
+
+##### 4. Claim Anonymous Links (Protected)
+```bash
+POST /api/auth/claim-links
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "anonymous_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+
+Response (200):
+{
+  "message": "Links claimed successfully",
+  "user_id": 1
+}
+```
+
+#### URL Shortening Endpoints
+
+##### 5. Create Short URL (Public or Authenticated)
+```bash
+# Anonymous user (no auth header)
 POST /api/shorten
 Content-Type: application/json
 
@@ -93,18 +175,35 @@ Response (201):
 {
   "short_code": "abc12345",
   "short_url": "http://localhost:8080/abc12345",
+  "original_url": "https://example.com/very/long/path",
+  "anonymous_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+
+# Authenticated user (with JWT token)
+POST /api/shorten
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "url": "https://example.com/very/long/path"
+}
+
+Response (201):
+{
+  "short_code": "xyz67890",
+  "short_url": "http://localhost:8080/xyz67890",
   "original_url": "https://example.com/very/long/path"
 }
 ```
 
-#### 2. Redirect to Original URL
+##### 6. Redirect to Original URL
 ```bash
 GET /:code
 # Example: http://localhost:8080/abc12345
 # Returns: 301 Redirect to original URL
 ```
 
-#### 3. Get URL Information
+##### 7. Get URL Information
 ```bash
 GET /api/urls/:code
 # Example: GET /api/urls/abc12345
@@ -120,9 +219,15 @@ Response (200):
 }
 ```
 
-#### 4. List All URLs
+##### 8. List All URLs
 ```bash
+# Anonymous user (no auth header) - returns only their anonymous links
 GET /api/urls
+# Returns links associated with anonymous_id from client
+
+# Authenticated user (with JWT token) - returns only their user links
+GET /api/urls
+Authorization: Bearer <access_token>
 
 Response (200):
 {
@@ -131,7 +236,7 @@ Response (200):
 }
 ```
 
-#### 5. Health Check
+##### 9. Health Check
 ```bash
 GET /health
 
@@ -148,9 +253,62 @@ Response (200):
 - **ORM:** GORM
 - **Database:** SQLite (easily switchable to PostgreSQL/MySQL)
 - **ID Generation:** go-nanoid
-- **Authentication:** Basic Auth + bcrypt
+- **Authentication:** JWT (JSON Web Tokens) + bcrypt password hashing
 - **CORS:** gin-contrib/cors
 - **API Documentation:** Swagger (OpenAPI 3.0)
+
+## 🔐 JWT Authentication Flow
+
+### Token Types
+- **Access Token**: Short-lived (15 minutes) - used for API requests
+- **Refresh Token**: Long-lived (7 days) - used to get new access tokens
+
+### Frontend Integration
+
+```javascript
+// 1. Login/Register
+const response = await fetch('http://localhost:8080/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username: 'john_doe', password: 'password123' })
+});
+
+const data = await response.json();
+localStorage.setItem('access_token', data.access_token);
+localStorage.setItem('refresh_token', data.refresh_token);
+
+// 2. Make authenticated requests
+const shortenResponse = await fetch('http://localhost:8080/api/shorten', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+  },
+  body: JSON.stringify({ url: 'https://example.com' })
+});
+
+// 3. Refresh token when access token expires
+const refreshResponse = await fetch('http://localhost:8080/api/auth/refresh', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ refresh_token: localStorage.getItem('refresh_token') })
+});
+
+const refreshData = await refreshResponse.json();
+localStorage.setItem('access_token', refreshData.access_token);
+localStorage.setItem('refresh_token', refreshData.refresh_token);
+```
+
+### Environment Variables
+
+Set custom JWT secret (recommended for production):
+
+```bash
+export JWT_SECRET="your-super-secret-key-change-this"
+go run cmd/server/main.go
+```
+
+Default secret is used if not set (for development only).
 
 ---
 
@@ -308,23 +466,32 @@ WHERE anonymous_id = 'anon-xyz789' AND user_id IS NULL
 - ❌ Slightly more complex than "auth-only"
 - ✅ **Massively better for production** and interview discussion
 
-### 5. **Authentication: Basic Auth + bcrypt**
+### 5. **Authentication: JWT (JSON Web Tokens) + bcrypt**
 
-**Why Basic Auth?**
-- ✅ **Simple to implement** (built into HTTP)
-- ✅ **No session management** needed
-- ✅ **Stateless** - perfect for REST API
-- ✅ **Good for API testing** (easy with Postman/curl)
+**Why JWT?**
+- ✅ **Industry standard** for modern web apps
+- ✅ **Stateless** - no server-side session storage
+- ✅ **Frontend-friendly** - easy to use with React/Vue/Angular
+- ✅ **Token expiration** - built-in security with automatic timeout
+- ✅ **Refresh tokens** - better UX (15min access + 7day refresh)
 
-**Security:**
-- ✅ **bcrypt** for password hashing (industry standard)
-- ✅ **Constant-time comparison** to prevent timing attacks
+**Implementation:**
+- ✅ **Access Token**: 15 minutes (for API requests)
+- ✅ **Refresh Token**: 7 days (to get new access tokens)
+- ✅ **bcrypt** for password hashing (industry standard, cost factor 10)
+- ✅ **HS256 signing algorithm** (HMAC-SHA256)
+- ✅ **Claims include**: user_id, username, exp, iat, nbf
+
+**Security Best Practices:**
+- ✅ **Environment variable** for JWT secret (JWT_SECRET)
+- ✅ **Short access token lifetime** (15min reduces hijack window)
+- ✅ **Token validation** on every protected request
 - ✅ **HTTPS required in production**
 
 **Production Upgrade Path:**
 ```
-Basic Auth → JWT → OAuth2
-(Current)   (Next step)   (Future)
+JWT → OAuth2 / SSO
+(Current)   (Future: Google/GitHub login)
 ```
 
 ### 6. **API Design: RESTful**
@@ -446,18 +613,23 @@ hashedPassword, _ := bcrypt.GenerateFromPassword(
 - ❌ **SQLite not production-ready** for high traffic
 
 ### If I Had More Time:
-1. **Caching Layer (Redis)**
+1. **JWT Token Blacklist/Revocation**
+   - Redis-based token blacklist for logout
+   - Invalidate tokens before expiry
+   - Track active sessions
+
+2. **Caching Layer (Redis)**
    - Cache frequently accessed URLs
    - Reduce database load
    - Sub-millisecond response times
 
-2. **Advanced Analytics**
+3. **Advanced Analytics**
    - User-Agent parsing (device, browser)
    - GeoIP location tracking
    - Referrer tracking
    - Time-series click data
 
-3. **Custom Aliases**
+4. **Custom Aliases**
    ```bash
    POST /api/shorten
    {
@@ -466,20 +638,20 @@ hashedPassword, _ := bcrypt.GenerateFromPassword(
    }
    ```
 
-4. **Link Expiration**
+5. **Link Expiration**
    ```go
    type URL struct {
        ExpiresAt *time.Time `json:"expires_at"`
    }
    ```
 
-5. **Rate Limiting**
+6. **Rate Limiting**
    ```go
    // Per IP or per user
    middleware.RateLimit(100, time.Hour)
    ```
 
-6. **Unit & Integration Tests**
+7. **Unit & Integration Tests**
    - Handler tests with mock services
    - Service tests with mock repositories
    - Integration tests with test database
@@ -516,10 +688,12 @@ Most candidates implement simple "auth-only" systems. This shows:
 Not just "working code" - **maintainable, testable, scalable code**
 
 ### 3. **Security Best Practices**
-- bcrypt password hashing
-- Constant-time comparisons
-- Input validation
-- SQL injection prevention (GORM)
+- JWT token-based authentication with expiry
+- bcrypt password hashing (cost factor 10)
+- Access tokens (15min) + Refresh tokens (7days)
+- Bearer token validation on protected routes
+- Input validation and sanitization
+- SQL injection prevention (GORM parameterized queries)
 
 ### 4. **Performance Optimization**
 - Async click tracking
@@ -537,6 +711,34 @@ This README shows:
 
 ## 📚 API Examples
 
+### Register New User:
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "password123"
+  }'
+```
+
+### Login and Get JWT Tokens:
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "password": "password123"
+  }'
+
+# Response includes:
+# {
+#   "access_token": "eyJhbGc...",
+#   "refresh_token": "eyJhbGc...",
+#   ...
+# }
+```
+
 ### Create Link as Anonymous User:
 ```bash
 curl -X POST http://localhost:8080/api/shorten \
@@ -544,20 +746,27 @@ curl -X POST http://localhost:8080/api/shorten \
   -d '{"url": "https://github.com/golang/go"}'
 ```
 
-### Create Link as Registered User:
+### Create Link as Authenticated User:
 ```bash
 curl -X POST http://localhost:8080/api/shorten \
   -H "Content-Type: application/json" \
-  -u "john_doe:password123" \
+  -H "Authorization: Bearer eyJhbGc..." \
   -d '{"url": "https://github.com/golang/go"}'
+```
+
+### Refresh Access Token:
+```bash
+curl -X POST http://localhost:8080/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "eyJhbGc..."}'
 ```
 
 ### Claim Anonymous Links:
 ```bash
 curl -X POST http://localhost:8080/api/auth/claim-links \
   -H "Content-Type: application/json" \
-  -u "john_doe:password123" \
-  -d '{"anonymous_id": "anon-abc123"}'
+  -H "Authorization: Bearer eyJhbGc..." \
+  -d '{"anonymous_id": "550e8400-e29b-41d4-a716-446655440000"}'
 ```
 
 ---
@@ -581,18 +790,6 @@ curl -X POST http://localhost:8080/api/auth/claim-links \
 - [ ] Write integration tests
 - [ ] Add rate limiting
 - [ ] Deploy to cloud platform
-
----
-
-## 📞 Contact
-
-**Candidate:** [Your Name]
-**Email:** [Your Email]
-**GitHub:** [Your GitHub]
-
-**Company:** FINAN COMPANY LIMITED
-**Position:** Golang Intern
-**Contact:** hrtalent@sobanhang.com
 
 ---
 

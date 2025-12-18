@@ -2,6 +2,9 @@ basePath: /
 definitions:
   handler.AuthResponse:
     properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
       email:
         example: john@example.com
         type: string
@@ -10,6 +13,9 @@ definitions:
         type: integer
       message:
         example: Login successful
+        type: string
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       username:
         example: john_doe
@@ -66,6 +72,26 @@ definitions:
     required:
     - password
     - username
+    type: object
+  handler.RefreshRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handler.RefreshResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      message:
+        example: Token refreshed successfully
+        type: string
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
     type: object
   handler.RegisterRequest:
     properties:
@@ -170,7 +196,7 @@ paths:
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
-      - BasicAuth: []
+      - BearerAuth: []
       summary: Claim anonymous links
       tags:
       - auth
@@ -198,6 +224,32 @@ paths:
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       summary: User login
+      tags:
+      - auth
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get new access token and refresh token using valid refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RefreshResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Refresh access token
       tags:
       - auth
   /api/auth/register:
@@ -300,6 +352,9 @@ paths:
       tags:
       - urls
 securityDefinitions:
-  BasicAuth:
-    type: basic
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
