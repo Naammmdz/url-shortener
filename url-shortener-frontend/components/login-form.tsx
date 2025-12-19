@@ -2,11 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Button, Input, Card, CardBody } from "@heroui/react"
 import { useAuth } from "@/contexts/auth-context"
+import { Button, Card, CardBody, Input } from "@heroui/react"
+import { ArrowLeft, Lock, Mail } from "lucide-react"
 import Link from "next/link"
-import { ArrowLeft, Mail, Lock } from "lucide-react"
+import { useState } from "react"
 
 export function LoginForm() {
   const { login } = useAuth()
@@ -46,35 +46,37 @@ export function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Input
-            type="email"
-            label="Email"
-            labelPlacement="outside"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            startContent={<Mail className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-            isRequired
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              startContent={<Mail className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
-          <Input
-            type="password"
-            label="Password"
-            labelPlacement="outside"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-            isRequired
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Password</label>
+            <Input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
           {error && <p className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-lg">{error}</p>}
 

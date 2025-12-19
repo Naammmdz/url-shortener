@@ -2,15 +2,15 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Button, Input, Card, CardBody } from "@heroui/react"
 import { useAuth } from "@/contexts/auth-context"
+import { Button, Card, CardBody, Input } from "@heroui/react"
+import { ArrowLeft, Lock, Mail, User } from "lucide-react"
 import Link from "next/link"
-import { ArrowLeft, Mail, Lock, User } from "lucide-react"
+import { useState } from "react"
 
 export function RegisterForm() {
   const { register } = useAuth()
-  const [name, setName] = useState("")
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -34,7 +34,7 @@ export function RegisterForm() {
     setIsLoading(true)
 
     try {
-      await register({ email, password, name: name || undefined })
+      await register({ email, password, username })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed")
     } finally {
@@ -59,64 +59,69 @@ export function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Input
-            type="text"
-            label="Name"
-            labelPlacement="outside"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            startContent={<User className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Username</label>
+            <Input
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              startContent={<User className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
-          <Input
-            type="email"
-            label="Email"
-            labelPlacement="outside"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            startContent={<Mail className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-            isRequired
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              startContent={<Mail className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
-          <Input
-            type="password"
-            label="Password"
-            labelPlacement="outside"
-            placeholder="Create a password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-            isRequired
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Password</label>
+            <Input
+              type="password"
+              placeholder="Create a password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
-          <Input
-            type="password"
-            label="Confirm Password"
-            labelPlacement="outside"
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
-            classNames={{
-              label: "text-foreground font-medium pb-1",
-              inputWrapper: "bg-secondary/50 border border-border/50 hover:bg-secondary/70 transition-colors",
-            }}
-            isRequired
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Confirm Password</label>
+            <Input
+              type="password"
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              startContent={<Lock className="h-4 w-4 text-muted-foreground" />}
+              classNames={{
+                input: "text-sm bg-transparent",
+                inputWrapper: "h-12 bg-background/50 border border-default-200 hover:border-default-300 rounded-lg transition-colors px-4 gap-3",
+              }}
+              isRequired
+            />
+          </div>
 
           {error && <p className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-lg">{error}</p>}
 

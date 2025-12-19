@@ -1,9 +1,10 @@
 "use client"
 
+import { deleteCookie, getCookie, setCookie } from "@/lib/cookies"
+import type { LoginCredentials, RegisterCredentials, User } from "@/types/auth"
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import type { User, AuthResponse, LoginCredentials, RegisterCredentials } from "@/types/auth"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
 
 interface AuthContextType {
   user: User | null
@@ -12,6 +13,8 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>
   register: (credentials: RegisterCredentials) => Promise<void>
   logout: () => void
+  claimAnonymousLinks: (token: string) => Promise<void>
+  refreshAccessToken: () => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -22,64 +25,153 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session on mount
-    const storedToken = localStorage.getItem("auth_token")
-    const storedUser = localStorage.getItem("auth_user")
+    // Check for existing JWT session on mount from cookies
+    const storedToken = getCookie("access_token")
+    const storedUser = getCookie("auth_user")
 
     if (storedToken && storedUser) {
       setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      setUser(JSON.parse(decodeURIComponent(storedUser)))
     }
     setIsLoading(false)
   }, [])
 
   const login = async (credentials: LoginCredentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Login failed" }))
-      throw new Error(error.message || "Login failed")
+      const error = await response.json().catch(() => ({ error: "Login failed" }))
+      throw new Error(error.error || "Login failed")
     }
 
-    const data: AuthResponse = await response.json()
-    setUser(data.user)
-    setToken(data.token)
-    localStorage.setItem("auth_token", data.token)
-    localStorage.setItem("auth_user", JSON.stringify(data.user))
+    const data = await response.json()
+    // Backend returns: { id, username, email, access_token, refresh_token, message }
+    const user: User = {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+    }
+    setUser(user)
+    setToken(data.access_token)
+    
+    // Store in secure cookies
+    setCookie("access_token", data.access_token, 1/96) // 15 minutes (1/96 of a day)
+    setCookie("refresh_token", data.refresh_token, 7) // 7 days
+    setCookie("auth_user", encodeURIComponent(JSON.stringify(user)), 7)
+
+    // Automatically claim any anonymous links
+    await claimAnonymousLinks(data.access_token)
   }
 
   const register = async (credentials: RegisterCredentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Registration failed" }))
-      throw new Error(error.message || "Registration failed")
+      const error = await response.json().catch(() => ({ error: "Registration failed" }))
+      throw new Error(error.error || "Registration failed")
     }
 
-    const data: AuthResponse = await response.json()
-    setUser(data.user)
-    setToken(data.token)
-    localStorage.setItem("auth_token", data.token)
-    localStorage.setItem("auth_user", JSON.stringify(data.user))
+    const data = await response.json()
+    // Backend returns: { id, username, email, access_token, refresh_token, message }
+    const user: User = {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+    }
+    setUser(user)
+    setToken(data.access_token)
+    
+    // Store in secure cookies
+    setCookie("access_token", data.access_token, 1/96) // 15 minutes (1/96 of a day)
+    setCookie("refresh_token", data.refresh_token, 7) // 7 days
+    setCookie("auth_user", encodeURIComponent(JSON.stringify(user)), 7)
+
+    // Automatically claim any anonymous links
+    await claimAnonymousLinks(data.access_token)
+  }
+
+  const refreshAccessToken = async (): Promise<string | null> => {
+    const refreshToken = getCookie("refresh_token")
+    if (!refreshToken) {
+      return null
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+
+      if (!response.ok) {
+        // Refresh token expired or invalid, logout user
+        logout()
+        return null
+      }
+
+      const data = await response.json()
+      // Backend returns: { access_token, refresh_token, message }
+      
+      // Update cookies with new tokens
+      setCookie("access_token", data.access_token, 1/96) // 15 minutes
+      setCookie("refresh_token", data.refresh_token, 7) // 7 days
+      setToken(data.access_token)
+      
+      return data.access_token
+    } catch (error) {
+      console.error("Failed to refresh token:", error)
+      logout()
+      return null
+    }
+  }
+
+  const claimAnonymousLinks = async (accessToken: string) => {
+    const anonymousId = getCookie("anonymous_id")
+    if (!anonymousId) {
+      return // No anonymous links to claim
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/claim-links`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ anonymous_id: anonymousId }),
+      })
+
+      if (response.ok) {
+        // Successfully claimed, remove anonymous_id
+        deleteCookie("anonymous_id")
+      }
+    } catch (error) {
+      console.error("Failed to claim anonymous links:", error)
+      // Don't throw error, claiming is optional
+    }
   }
 
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("auth_user")
+    deleteCookie("access_token")
+    deleteCookie("refresh_token")
+    deleteCookie("auth_user")
+    deleteCookie("anonymous_id")
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, claimAnonymousLinks, refreshAccessToken }}>
+      {children}
+    </AuthContext.Provider>
   )
 }
 

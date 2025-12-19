@@ -1,23 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Chip,
-  Spinner,
-} from "@heroui/react"
-import { Copy, ExternalLink, Eye, BarChart3, Check } from "lucide-react"
-import type { Link } from "@/types/link"
 import { LinkDetail } from "@/components/link-detail"
+import { getCookie } from "@/lib/cookies"
+import type { Link } from "@/types/link"
+import {
+    Button,
+    Card,
+    CardBody,
+    CardHeader,
+    Chip,
+    Spinner,
+    Table,
+    TableBody,
+    TableCell,
+    TableColumn,
+    TableHeader,
+    TableRow,
+} from "@heroui/react"
+import { BarChart3, Check, Copy, ExternalLink, Eye } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface UrlListProps {
   refreshTrigger: number
@@ -30,7 +31,7 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
 
   useEffect(() => {
     fetchLinks()
@@ -41,14 +42,46 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
     setError(null)
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/links`)
+      // Get JWT token or anonymous_id from cookies
+      const accessToken = getCookie("access_token")
+      const anonymousId = getCookie("anonymous_id")
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      // Add Authorization header if user is logged in
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`
+      }
+
+      // Build query params for anonymous users
+      let url = `${apiBaseUrl}/api/urls`
+      if (!accessToken && anonymousId) {
+        url += `?anonymous_id=${anonymousId}`
+      }
+
+      const response = await fetch(url, { headers })
 
       if (!response.ok) {
         throw new Error("Failed to fetch links")
       }
 
       const data = await response.json()
-      setLinks(data)
+      // Backend returns: { total: number, urls: Array }
+      const linksData = data.urls || []
+      
+      // Transform backend data to frontend Link type
+      const transformedLinks: Link[] = linksData.map((item: any) => ({
+        id: item.id,
+        code: item.short_code,
+        url: item.original_url,
+        shortUrl: `${apiBaseUrl}/${item.short_code}`,
+        clicks: item.clicks || 0,
+        createdAt: item.created_at,
+      }))
+      
+      setLinks(transformedLinks)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {

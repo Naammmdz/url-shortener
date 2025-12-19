@@ -1,10 +1,11 @@
 "use client"
 
+import { getCookie, setCookie } from "@/lib/cookies"
+import type { Link } from "@/types/link"
+import { Button, Card, CardBody, CardHeader, Input, Snippet } from "@heroui/react"
+import { ExternalLink, Sparkles } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { Button, Input, Card, CardBody, CardHeader, Snippet } from "@heroui/react"
-import { ExternalLink, Sparkles } from "lucide-react"
-import type { Link } from "@/types/link"
 
 interface CreateShortUrlProps {
   onLinkCreated: (link: Link) => void
@@ -16,7 +17,7 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,22 +26,54 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
     setShortUrl(null)
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/links`, {
+      // Get JWT token and anonymous_id from cookies
+      const accessToken = getCookie("access_token")
+      const anonymousId = getCookie("anonymous_id")
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      // Add Authorization header if user is logged in
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`
+      }
+
+      const body: { url: string; anonymous_id?: string } = { url: longUrl }
+      
+      // Add anonymous_id if not logged in and exists
+      if (!accessToken && anonymousId) {
+        body.anonymous_id = anonymousId
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/shorten`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url: longUrl }),
+        headers,
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create short URL")
+        const errorData = await response.json().catch(() => ({ error: "Failed to create short URL" }))
+        throw new Error(errorData.error || "Failed to create short URL")
       }
 
       const data = await response.json()
-      const fullShortUrl = `${apiBaseUrl}/${data.code}`
-      setShortUrl(fullShortUrl)
-      onLinkCreated(data)
+      // Backend returns: { short_code, short_url, original_url, anonymous_id? }
+      
+      // Save anonymous_id if returned (for first-time anonymous users)
+      if (data.anonymous_id) {
+        setCookie("anonymous_id", data.anonymous_id, 365) // 1 year
+      }
+
+      setShortUrl(data.short_url)
+      onLinkCreated({
+        id: data.short_code,
+        code: data.short_code,
+        url: data.original_url,
+        shortUrl: data.short_url,
+        clicks: 0,
+        createdAt: new Date().toISOString(),
+      })
       setLongUrl("")
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")

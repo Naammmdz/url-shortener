@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Modal, ModalContent, ModalHeader, ModalBody, Button, Snippet, Card, CardBody, Spinner } from "@heroui/react"
-import { Copy, ExternalLink, BarChart3, Calendar, Clock } from "lucide-react"
 import type { Link } from "@/types/link"
+import { Button, Card, CardBody, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner } from "@heroui/react"
+import { BarChart3, Calendar, Clock, Copy, ExternalLink } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface LinkDetailProps {
   link: Link
@@ -25,14 +25,22 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
     setError(null)
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/links/${link.code}`)
+      const response = await fetch(`${apiBaseUrl}/api/urls/${link.code}`)
 
       if (!response.ok) {
         throw new Error("Failed to fetch link details")
       }
 
       const data = await response.json()
-      setDetailedLink(data)
+      // Backend returns: { id, short_code, original_url, clicks, created_at, updated_at }
+      setDetailedLink({
+        id: data.id,
+        code: data.short_code,
+        url: data.original_url,
+        shortUrl: `${apiBaseUrl}/${data.short_code}`,
+        clicks: data.clicks || 0,
+        createdAt: data.created_at,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
