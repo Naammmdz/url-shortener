@@ -13,61 +13,161 @@ URL Shortener is a service similar to bit.ly or tinyurl that:
 - **Supports both authenticated and anonymous users**
 - **Allows anonymous users to claim their links after registration**
 
-## Project Structure
+## 📁 Project Structure
+
+This is a **monorepo** containing both backend (Go) and frontend (Next.js):
 
 ```
 url-shortener/
-├── cmd/
-│   └── server/
-│       └── main.go           # Application entry point
-├── internal/
-│   ├── handler/
-│   │   └── url_handler.go    # HTTP handlers
-│   ├── service/
-│   │   └── url_service.go    # Business logic
-│   ├── repository/
-│   │   └── url_repository.go # Data access layer
-│   └── model/
-│       └── url.go            # Domain models
-├── config/
-│   └── config.go             # Configuration
-├── migrations/
-├── .env.example
-├── .gitignore
-├── go.mod
-└── README.md
+├── url-shortener-backend/       # Go Backend API
+│   ├── cmd/
+│   │   └── server/
+│   │       └── main.go          # Application entry point
+│   ├── internal/
+│   │   ├── handler/
+│   │   │   ├── auth_handler.go  # Authentication endpoints
+│   │   │   └── url_handler.go   # URL shortening endpoints
+│   │   ├── service/
+│   │   │   ├── user_service.go  # User business logic
+│   │   │   └── url_service.go   # URL business logic
+│   │   ├── repository/
+│   │   │   ├── user_repository.go
+│   │   │   └── url_repository.go
+│   │   ├── model/
+│   │   │   ├── user.go          # User model
+│   │   │   └── url.go           # URL model
+│   │   └── middleware/
+│   │       └── auth.go          # JWT authentication middleware
+│   ├── config/
+│   │   └── config.go            # Configuration
+│   ├── docs/                    # Swagger documentation
+│   ├── go.mod
+│   ├── go.sum
+│   └── README.md
+│
+└── url-shortener-frontend/      # Next.js Frontend
+    ├── app/
+    │   ├── layout.tsx           # Root layout
+    │   ├── page.tsx             # Home page
+    │   ├── providers.tsx        # Context providers
+    │   ├── login/
+    │   └── register/
+    ├── components/
+    │   ├── create-short-url.tsx # URL creation form
+    │   ├── url-list.tsx         # URLs dashboard
+    │   ├── link-detail.tsx      # URL analytics
+    │   ├── login-form.tsx       # Login form
+    │   └── register-form.tsx    # Registration form
+    ├── contexts/
+    │   └── auth-context.tsx     # Authentication state
+    ├── lib/
+    │   ├── api.ts               # API helper with auto token refresh
+    │   └── cookies.ts           # Secure cookie utilities
+    ├── types/
+    │   ├── auth.ts              # Auth type definitions
+    │   └── link.ts              # Link type definitions
+    ├── package.json
+    ├── next.config.js
+    └── .env.local               # Environment variables
 ```
 
-## How to Run
+## 🚀 How to Run
 
-### Requirements:
-- Go 1.21 or higher
-- Git
+### Prerequisites
+- **Go** 1.21 or higher
+- **Node.js** 18+ and npm
+- **Git**
 
-### Steps:
+### Quick Start
 
-1. **Clone repository:**
+#### 1. Clone Repository
 ```bash
 git clone <repository-url>
 cd url-shortener
 ```
 
-2. **Install dependencies:**
+#### 2. Run Backend (Terminal 1)
 ```bash
+# Navigate to backend directory
+cd url-shortener-backend
+
+# Install Go dependencies
 go mod download
-```
 
-3. **Generate Swagger docs (if needed):**
-```bash
+# Generate Swagger docs (optional, already generated)
 go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/server/main.go
-```
 
-4. **Run server:**
-```bash
+# Set JWT secret (optional, uses default in development)
+export JWT_SECRET="your-secret-key"
+
+# Run server
 go run cmd/server/main.go
 ```
 
-Server will start on `http://localhost:8080`
+Backend will start on **`http://localhost:8080`**
+- API Endpoints: `http://localhost:8080/api/`
+- Swagger UI: `http://localhost:8080/swagger/index.html`
+- Health Check: `http://localhost:8080/health`
+
+#### 3. Run Frontend (Terminal 2)
+```bash
+# Navigate to frontend directory
+cd url-shortener-frontend
+
+# Install Node.js dependencies
+npm install
+
+# Create environment file
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8080" > .env.local
+
+# Run development server
+npm run dev
+```
+
+Frontend will start on **`http://localhost:3000`**
+
+#### 4. Access Application
+Open your browser and visit:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **API Documentation**: http://localhost:8080/swagger/index.html
+
+### Development Workflow
+
+**Backend Changes:**
+- Edit files in `url-shortener-backend/`
+- Restart: `go run cmd/server/main.go`
+- Regenerate Swagger: `swag init -g cmd/server/main.go`
+
+**Frontend Changes:**
+- Edit files in `url-shortener-frontend/`
+- Hot reload is automatic (Next.js dev server)
+
+### Environment Variables
+
+**Backend** (`url-shortener-backend/`)
+```bash
+# Optional - defaults provided for development
+export JWT_SECRET="your-super-secret-key"  # Default: "your-secret-key"
+export PORT="8080"                          # Default: 8080
+```
+
+**Frontend** (`url-shortener-frontend/.env.local`)
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+### Troubleshooting
+
+**Backend Issues:**
+- Port 8080 already in use? → Change `PORT` in code or kill process: `lsof -ti:8080 | xargs kill`
+- Database errors? → Delete `url_shortener.db` and restart
+- Swagger not showing? → Run `swag init -g cmd/server/main.go` in backend folder
+
+**Frontend Issues:**
+- API connection failed? → Check backend is running on port 8080
+- Cookie errors? → Clear browser cookies and refresh
+- Port 3000 in use? → Next.js will automatically use 3001
 
 ## API Documentation
 
@@ -661,114 +761,6 @@ hashedPassword, _ := bcrypt.GenerateFromPassword(
    - Docker image building
    - Automated deployment
 
-### Production-Ready Checklist:
-- ✅ Migrate to **PostgreSQL/MySQL**
-- ✅ Add **connection pooling**
-- ✅ Implement **structured logging** (JSON logs)
-- ✅ Add **health checks** with database ping
-- ✅ Implement **graceful shutdown**
-- ✅ Add **Prometheus metrics**
-- ✅ Setup **HTTPS** with proper domain
-- ✅ Add **rate limiting** per IP
-- ✅ Implement **CORS** properly (not allow-all)
-- ✅ Add **request validation** middleware
-- ✅ Setup **monitoring & alerting**
-
----
-
-## 🚀 What Makes This Implementation Stand Out
-
-### 1. **Production-Ready Anonymous System**
-Most candidates implement simple "auth-only" systems. This shows:
-- Real-world UX thinking
-- Database schema design skills
-- Complex business logic handling
-
-### 2. **Clean Architecture**
-Not just "working code" - **maintainable, testable, scalable code**
-
-### 3. **Security Best Practices**
-- JWT token-based authentication with expiry
-- bcrypt password hashing (cost factor 10)
-- Access tokens (15min) + Refresh tokens (7days)
-- Bearer token validation on protected routes
-- Input validation and sanitization
-- SQL injection prevention (GORM parameterized queries)
-
-### 4. **Performance Optimization**
-- Async click tracking
-- Database indexes
-- Efficient queries
-
-### 5. **Comprehensive Documentation**
-This README shows:
-- Problem-solving process
-- Decision rationale
-- Trade-off awareness
-- Production mindset
-
----
-
-## 📚 API Examples
-
-### Register New User:
-```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "email": "john@example.com",
-    "password": "password123"
-  }'
-```
-
-### Login and Get JWT Tokens:
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "password": "password123"
-  }'
-
-# Response includes:
-# {
-#   "access_token": "eyJhbGc...",
-#   "refresh_token": "eyJhbGc...",
-#   ...
-# }
-```
-
-### Create Link as Anonymous User:
-```bash
-curl -X POST http://localhost:8080/api/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://github.com/golang/go"}'
-```
-
-### Create Link as Authenticated User:
-```bash
-curl -X POST http://localhost:8080/api/shorten \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGc..." \
-  -d '{"url": "https://github.com/golang/go"}'
-```
-
-### Refresh Access Token:
-```bash
-curl -X POST http://localhost:8080/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token": "eyJhbGc..."}'
-```
-
-### Claim Anonymous Links:
-```bash
-curl -X POST http://localhost:8080/api/auth/claim-links \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGc..." \
-  -d '{"anonymous_id": "550e8400-e29b-41d4-a716-446655440000"}'
-```
-
 ---
 
 ## 🎯 Development Progress
@@ -786,6 +778,9 @@ curl -X POST http://localhost:8080/api/auth/claim-links \
 - [x] Add proper error handling
 - [x] Implement input validation
 - [x] Add database indexes
+- [x] Migrate to secure cookie storage (replaced localStorage)
+- [x] Add automatic token refresh on 401 errors
+- [x] Implement CORS configuration for frontend
 - [ ] Write unit tests
 - [ ] Write integration tests
 - [ ] Add rate limiting
