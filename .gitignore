@@ -1,16 +1,16 @@
-# Test files
-test.md
+# Database files
+*.db
+*.db-shm
+*.db-wal
 
 # Binaries
+bin/
 *.exe
-*.exe~
 *.dll
 *.so
 *.dylib
-bin/
-dist/
 
-# Test binary
+# Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool
@@ -21,9 +21,6 @@ vendor/
 
 # Go workspace file
 go.work
-
-# Environment variables
-.env
 
 # IDE
 .vscode/
@@ -36,7 +33,11 @@ go.work
 .DS_Store
 Thumbs.db
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Environment variables
+.env
+
+# Frontend
+url-shortener-frontend/node_modules/
+url-shortener-frontend/dist/
+url-shortener-frontend/.next/
+url-shortener-frontend/build/
