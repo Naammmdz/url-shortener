@@ -27,7 +27,7 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Username string `json:"username" binding:"required" example:"john_doe"`
+	Email    string `json:"email" binding:"required,email" example:"john@example.com"`
 	Password string `json:"password" binding:"required" example:"password123"`
 }
 
@@ -107,7 +107,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.Login(req.Username, req.Password)
+	user, err := h.userService.Login(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
 		return

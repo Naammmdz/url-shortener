@@ -1,5 +1,6 @@
 "use client"
 
+import { showErrorToast } from "@/lib/toast-helpers"
 import type { Link } from "@/types/link"
 import { Button, Card, CardBody, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner } from "@heroui/react"
 import { BarChart3, Calendar, Clock, Copy, ExternalLink } from "lucide-react"
@@ -14,7 +15,6 @@ interface LinkDetailProps {
 export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
   const [detailedLink, setDetailedLink] = useState<Link | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchLinkDetail()
@@ -22,7 +22,6 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
 
   const fetchLinkDetail = async () => {
     setLoading(true)
-    setError(null)
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/urls/${link.code}`)
@@ -42,7 +41,7 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
         createdAt: data.created_at,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      showErrorToast(err)
     } finally {
       setLoading(false)
     }
@@ -75,10 +74,6 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
             <div className="flex items-center justify-center py-12">
               <Spinner size="lg" color="primary" label="Loading details..." />
             </div>
-          )}
-
-          {error && (
-            <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
           )}
 
           {detailedLink && (

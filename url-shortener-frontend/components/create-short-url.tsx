@@ -1,6 +1,7 @@
 "use client"
 
 import { getCookie, setCookie } from "@/lib/cookies"
+import { showErrorToast, showSuccessToast } from "@/lib/toast-helpers"
 import type { Link } from "@/types/link"
 import { Button, Card, CardBody, CardHeader, Input, Snippet } from "@heroui/react"
 import { ExternalLink, Sparkles } from "lucide-react"
@@ -15,14 +16,12 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
   const [longUrl, setLongUrl] = useState("")
   const [shortUrl, setShortUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
     setShortUrl(null)
 
     try {
@@ -75,8 +74,9 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
         createdAt: new Date().toISOString(),
       })
       setLongUrl("")
+      showSuccessToast("Short link created!", "Your link is ready to share.")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      showErrorToast(err)
     } finally {
       setLoading(false)
     }
@@ -117,10 +117,6 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
               {loading ? "Creating..." : "Shorten URL"}
             </Button>
           </div>
-
-          {error && (
-            <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
-          )}
 
           {shortUrl && (
             <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-5">

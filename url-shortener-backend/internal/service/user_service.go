@@ -50,8 +50,8 @@ func (s *userService) Register(username, email, password string) (*model.User, e
 	return user, nil
 }
 
-func (s *userService) Login(username, password string) (*model.User, error) {
-	user, err := s.repo.FindByUsername(username)
+func (s *userService) Login(email, password string) (*model.User, error) {
+	user, err := s.repo.FindByEmail(email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid credentials")

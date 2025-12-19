@@ -1,7 +1,9 @@
 "use client"
 
 import { LinkDetail } from "@/components/link-detail"
+import { useAuth } from "@/contexts/auth-context"
 import { getCookie } from "@/lib/cookies"
+import { showErrorToast } from "@/lib/toast-helpers"
 import type { Link } from "@/types/link"
 import {
     Button,
@@ -25,9 +27,9 @@ interface UrlListProps {
 }
 
 export function UrlList({ refreshTrigger }: UrlListProps) {
+  const { user } = useAuth()
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
@@ -35,16 +37,22 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
 
   useEffect(() => {
     fetchLinks()
-  }, [refreshTrigger])
+  }, [refreshTrigger, user])
 
   const fetchLinks = async () => {
     setLoading(true)
-    setError(null)
 
     try {
       // Get JWT token or anonymous_id from cookies
       const accessToken = getCookie("access_token")
       const anonymousId = getCookie("anonymous_id")
+
+      // If no authentication and no anonymous_id, clear links
+      if (!accessToken && !anonymousId) {
+        setLinks([])
+        setLoading(false)
+        return
+      }
 
       const headers: HeadersInit = {
         "Content-Type": "application/json",
@@ -83,7 +91,8 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
       
       setLinks(transformedLinks)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      showErrorToast(err)
+      setLinks([]) // Clear links on error
     } finally {
       setLoading(false)
     }
@@ -109,19 +118,6 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
       <Card className="border border-border/50 bg-card">
         <CardBody className="flex items-center justify-center py-16">
           <Spinner size="lg" color="primary" label="Loading your links..." />
-        </CardBody>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className="border border-border/50 bg-card">
-        <CardBody className="space-y-4 py-8">
-          <div className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
-          <Button onPress={fetchLinks} variant="flat" color="primary" size="sm">
-            Try Again
-          </Button>
         </CardBody>
       </Card>
     )

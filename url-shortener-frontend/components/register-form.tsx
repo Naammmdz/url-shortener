@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useAuth } from "@/contexts/auth-context"
+import { showErrorToast, showSuccessToast } from "@/lib/toast-helpers"
 import { Button, Card, CardBody, Input } from "@heroui/react"
 import { ArrowLeft, Lock, Mail, User } from "lucide-react"
 import Link from "next/link"
@@ -14,20 +15,18 @@ export function RegisterForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      showErrorToast("Passwords do not match")
       return
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters")
+      showErrorToast("Password must be at least 6 characters")
       return
     }
 
@@ -35,8 +34,9 @@ export function RegisterForm() {
 
     try {
       await register({ email, password, username })
+      showSuccessToast("Account created successfully! Welcome aboard!")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed")
+      showErrorToast(err)
     } finally {
       setIsLoading(false)
     }
@@ -122,8 +122,6 @@ export function RegisterForm() {
               isRequired
             />
           </div>
-
-          {error && <p className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-lg">{error}</p>}
 
           <Button type="submit" color="primary" className="w-full font-medium" isLoading={isLoading}>
             Create Account

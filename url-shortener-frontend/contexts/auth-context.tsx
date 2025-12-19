@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     deleteCookie("access_token")
     deleteCookie("refresh_token")
     deleteCookie("auth_user")
-    deleteCookie("anonymous_id")
+    // Don't delete anonymous_id - user might want to create new anonymous links
   }
 
   return (
