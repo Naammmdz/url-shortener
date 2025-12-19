@@ -1,0 +1,17 @@
+# Docker
+*.db
+*.db-shm
+*.db-wal
+bin/
+
+# Frontend build artifacts
+url-shortener-frontend/.next/
+url-shortener-frontend/out/
+url-shortener-frontend/node_modules/
+
+# Backend binaries
+url-shortener-backend/main
+url-shortener-backend/url-shortener
+
+# Environment
+.env.production
