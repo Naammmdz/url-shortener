@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+// In production: API_BASE_URL is set to backend container URL
+// In development: defaults to localhost:1234
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:1234'
 
 export async function GET(

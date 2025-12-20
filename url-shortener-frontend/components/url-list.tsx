@@ -3,6 +3,7 @@
 import { LinkDetail } from "@/components/link-detail"
 import { useAuth } from "@/contexts/auth-context"
 import { getCookie } from "@/lib/cookies"
+import { getAnonymousId } from "@/lib/storage"
 import { showErrorToast } from "@/lib/toast-helpers"
 import type { Link } from "@/types/link"
 import {
@@ -44,9 +45,9 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
     setLoading(true)
 
     try {
-      // Get JWT token or anonymous_id from cookies
+      // Get JWT token or anonymous_id
       const accessToken = getCookie("access_token")
-      const anonymousId = getCookie("anonymous_id")
+      const anonymousId = getAnonymousId()
 
       // If no authentication and no anonymous_id, clear links
       if (!accessToken && !anonymousId) {

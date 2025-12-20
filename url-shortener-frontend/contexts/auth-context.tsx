@@ -1,6 +1,7 @@
 "use client"
 
 import { deleteCookie, getCookie, setCookie } from "@/lib/cookies"
+import { getAnonymousId, removeAnonymousId } from "@/lib/storage"
 import type { LoginCredentials, RegisterCredentials, User } from "@/types/auth"
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
@@ -135,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const claimAnonymousLinks = async (accessToken: string) => {
-    const anonymousId = getCookie("anonymous_id")
+    const anonymousId = getAnonymousId()
     if (!anonymousId) {
       return // No anonymous links to claim
     }
@@ -152,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         // Successfully claimed, remove anonymous_id
-        deleteCookie("anonymous_id")
+        removeAnonymousId()
       }
     } catch (error) {
       console.error("Failed to claim anonymous links:", error)

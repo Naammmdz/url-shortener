@@ -1,6 +1,7 @@
 "use client"
 
-import { getCookie, setCookie } from "@/lib/cookies"
+import { getCookie } from "@/lib/cookies"
+import { getAnonymousId, setAnonymousId } from "@/lib/storage"
 import { showErrorToast, showSuccessToast } from "@/lib/toast-helpers"
 import type { Link } from "@/types/link"
 import { Button, Card, CardBody, CardHeader, Input, Snippet } from "@heroui/react"
@@ -26,9 +27,9 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
     setShortUrl(null)
 
     try {
-      // Get JWT token and anonymous_id from cookies
+      // Get JWT token and anonymous_id
       const accessToken = getCookie("access_token")
-      const anonymousId = getCookie("anonymous_id")
+      const anonymousId = getAnonymousId()
 
       const headers: HeadersInit = {
         "Content-Type": "application/json",
@@ -62,15 +63,21 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
       
       // Save anonymous_id if returned (for first-time anonymous users)
       if (data.anonymous_id) {
-        setCookie("anonymous_id", data.anonymous_id, 365) // 1 year
+        setAnonymousId(data.anonymous_id)
       }
 
-      setShortUrl(data.short_url)
+      // Build full short URL - use current origin if backend returns relative path
+      let fullShortUrl = data.short_url
+      if (fullShortUrl && !fullShortUrl.startsWith('http')) {
+        fullShortUrl = `${window.location.origin}${fullShortUrl.startsWith('/') ? '' : '/'}${fullShortUrl}`
+      }
+
+      setShortUrl(fullShortUrl)
       onLinkCreated({
         id: data.short_code,
         code: data.short_code,
         url: data.original_url,
-        shortUrl: data.short_url,
+        shortUrl: fullShortUrl,
         clicks: 0,
         createdAt: new Date().toISOString(),
       })
