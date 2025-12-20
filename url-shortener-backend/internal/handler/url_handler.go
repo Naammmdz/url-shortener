@@ -24,7 +24,7 @@ type CreateURLRequest struct {
 
 type CreateURLResponse struct {
 	ShortCode   string `json:"short_code" example:"abc12345"`
-	ShortURL    string `json:"short_url" example:"http://localhost:8080/abc12345"`
+	ShortURL    string `json:"short_url" example:"https://url.naammmdz.id.vn/abc12345"`
 	OriginalURL string `json:"original_url" example:"https://example.com/very/long/path"`
 	AnonymousID string `json:"anonymous_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
