@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 	"url-shortener/config"
 	_ "url-shortener/docs" // Import generated docs
 	"url-shortener/internal/handler"
@@ -53,9 +55,14 @@ func main() {
 	// Setup router
 	r := gin.Default()
 
-	// CORS configuration
+	// CORS configuration - read from environment or use defaults
+	allowedOrigins := []string{"http://localhost:3000", "https://url.naammmdz.id.vn"}
+	if envOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); envOrigins != "" {
+		allowedOrigins = strings.Split(envOrigins, ",")
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://url.naammmdz.id.vn"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

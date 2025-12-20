@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: urlshortener
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: Naammmdz@123
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -32,7 +32,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_PASSWORD: Naammmdz@123
       DB_NAME: urlshortener
       DB_SSLMODE: disable
       
@@ -41,10 +41,10 @@ services:
       GIN_MODE: release
       
       # JWT configuration
-      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_SECRET: naammmdz-url-shortener-jwt-secret-key-2024
       
       # CORS configuration
-      CORS_ALLOWED_ORIGINS: http://localhost:5678,http://frontend:5678
+      CORS_ALLOWED_ORIGINS: http://localhost:5678,http://frontend:5678,https://url.naammmdz.id.vn
     ports:
       - "1234:1234"
     depends_on:
@@ -66,7 +66,8 @@ services:
     container_name: url-shortener-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:1234
+      # API_BASE_URL is used by Next.js rewrites (server-side proxy)
+      API_BASE_URL: http://backend:1234
       PORT: 5678
     ports:
       - "5678:5678"
