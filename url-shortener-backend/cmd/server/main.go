@@ -104,14 +104,20 @@ func main() {
 		api.GET("/urls/:code", urlHandler.GetURLInfo)
 	}
 
-	log.Println("🚀 Server starting on :8080...")
-	log.Println("📚 Swagger docs: http://localhost:8080/swagger/index.html")
+	// Get port from environment or default to 8080
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🚀 Server starting on :%s...", port)
+	log.Printf("📚 Swagger docs: http://localhost:%s/swagger/index.html", port)
 	log.Println("👤 Anonymous users: Create links without auth")
 	log.Println("🔐 Registered users: Use JWT Bearer token")
 	log.Println("🎫 Login/Register returns: access_token (15min) + refresh_token (7days)")
 	log.Println("🔗 Claim links: POST /api/auth/claim-links with anonymous_id")
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
