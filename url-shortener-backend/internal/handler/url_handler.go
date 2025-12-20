@@ -171,8 +171,8 @@ func (h *URLHandler) ListURLs(c *gin.Context) {
 		// Anonymous user with ID - show their links
 		urls, err = h.service.ListAnonymousURLs(anonymousID)
 	} else {
-		// No filter - show all (could restrict this in production)
-		urls, err = h.service.ListURLs()
+		// No authentication and no anonymous_id - return empty list
+		urls = []model.URL{}
 	}
 
 	if err != nil {
