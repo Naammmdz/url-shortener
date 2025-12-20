@@ -1,6 +1,8 @@
 import { getCookie, setCookie } from "./cookies"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+// In production, use relative URL to go through Next.js proxy
+// In development or when NEXT_PUBLIC_API_BASE_URL is set, use that URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
 interface FetchWithAuthOptions extends RequestInit {
   skipAuth?: boolean
