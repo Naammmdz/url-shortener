@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"os"
 	"url-shortener/internal/model"
 	"url-shortener/internal/service"
 
@@ -74,7 +75,21 @@ func (h *URLHandler) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	shortURL := "http://localhost:8080/" + urlEntry.ShortCode
+	// Build short URL from BASE_URL env or request origin
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		// Fallback: use request scheme and host
+		scheme := "http"
+		if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+		host := c.GetHeader("X-Forwarded-Host")
+		if host == "" {
+			host = c.Request.Host
+		}
+		baseURL = scheme + "://" + host
+	}
+	shortURL := baseURL + "/" + urlEntry.ShortCode
 
 	response := CreateURLResponse{
 		ShortCode:   urlEntry.ShortCode,

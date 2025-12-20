@@ -39,6 +39,7 @@ services:
       # Server configuration
       SERVER_PORT: 1234
       GIN_MODE: release
+      BASE_URL: https://url.naammmdz.id.vn
       
       # JWT configuration
       JWT_SECRET: naammmdz-url-shortener-jwt-secret-key-2024
