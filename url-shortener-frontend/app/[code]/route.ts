@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:1234'
 
@@ -26,8 +26,8 @@ export async function GET(
 
     const data = await response.json()
     
-    // Redirect to original URL
-    redirect(data.original_url)
+    // Redirect to original URL using NextResponse
+    return NextResponse.redirect(data.original_url, { status: 307 })
   } catch (error) {
     console.error('Redirect error:', error)
     return new Response('Failed to redirect', { status: 500 })
