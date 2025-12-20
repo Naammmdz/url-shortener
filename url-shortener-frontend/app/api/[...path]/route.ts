@@ -5,14 +5,19 @@ import { NextRequest, NextResponse } from 'next/server'
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:1234'
 
 async function proxyRequest(request: NextRequest, path: string) {
-  const url = `${API_BASE_URL}/api/${path}`
+  // Build URL with query parameters
+  const url = new URL(`${API_BASE_URL}/api/${path}`)
+  // Copy all query parameters from original request
+  request.nextUrl.searchParams.forEach((value, key) => {
+    url.searchParams.append(key, value)
+  })
   
   const headers = new Headers(request.headers)
   // Remove host header to avoid conflicts
   headers.delete('host')
   
   try {
-    const response = await fetch(url, {
+    const response = await fetch(url.toString(), {
       method: request.method,
       headers,
       body: request.method !== 'GET' && request.method !== 'HEAD' 

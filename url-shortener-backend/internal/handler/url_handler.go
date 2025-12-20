@@ -59,13 +59,16 @@ func (h *URLHandler) CreateShortURL(c *gin.Context) {
 
 	// If not authenticated, use anonymous ID from request or generate new one
 	var anonymousID *string
+	var isNewAnonymousID bool
 	if userID == nil {
 		if req.AnonymousID != nil && *req.AnonymousID != "" {
 			anonymousID = req.AnonymousID
+			isNewAnonymousID = false
 		} else {
 			// Generate new anonymous ID (UUID v4)
 			newID := generateAnonymousID()
 			anonymousID = &newID
+			isNewAnonymousID = true
 		}
 	}
 
@@ -97,8 +100,8 @@ func (h *URLHandler) CreateShortURL(c *gin.Context) {
 		OriginalURL: urlEntry.OriginalURL,
 	}
 
-	// Return anonymous ID if created as anonymous
-	if anonymousID != nil {
+	// Only return anonymous ID if it was newly generated (first-time user)
+	if isNewAnonymousID && anonymousID != nil {
 		response.AnonymousID = *anonymousID
 	}
 

@@ -16,20 +16,21 @@ export async function GET(
   }
 
   try {
-    // Call backend to get original URL
-    const response = await fetch(`${API_BASE_URL}/api/urls/${code}`, {
+    // Call backend redirect endpoint (which counts clicks automatically)
+    const response = await fetch(`${API_BASE_URL}/${code}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'manual', // Don't follow redirects automatically
     })
 
-    if (!response.ok) {
-      return new Response('Short URL not found', { status: 404 })
+    // Backend returns 301 redirect with Location header
+    if (response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) {
+      const location = response.headers.get('location')
+      if (location) {
+        return NextResponse.redirect(location, { status: 307 })
+      }
     }
 
-    const data = await response.json()
-    
-    // Redirect to original URL using NextResponse
-    return NextResponse.redirect(data.original_url, { status: 307 })
+    return new Response('Short URL not found', { status: 404 })
   } catch (error) {
     console.error('Redirect error:', error)
     return new Response('Failed to redirect', { status: 500 })

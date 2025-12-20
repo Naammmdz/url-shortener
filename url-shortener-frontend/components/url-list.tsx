@@ -81,12 +81,15 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
       // Backend returns: { total: number, urls: Array }
       const linksData = data.urls || []
       
+      // Get frontend URL for short URLs
+      const frontendUrl = typeof window !== 'undefined' ? window.location.origin : ''
+      
       // Transform backend data to frontend Link type
       const transformedLinks: Link[] = linksData.map((item: any) => ({
         id: item.id,
         code: item.short_code,
         url: item.original_url,
-        shortUrl: `${apiBaseUrl}/${item.short_code}`,
+        shortUrl: `${frontendUrl}/${item.short_code}`,
         clicks: item.clicks || 0,
         createdAt: item.created_at,
       }))
@@ -101,7 +104,8 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
   }
 
   const handleCopy = async (code: string) => {
-    const shortUrl = `${apiBaseUrl}/${code}`
+    const frontendUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const shortUrl = `${frontendUrl}/${code}`
     await navigator.clipboard.writeText(shortUrl)
     setCopiedCode(code)
     setTimeout(() => setCopiedCode(null), 2000)
@@ -224,7 +228,7 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
                         isIconOnly
                         variant="light"
                         size="sm"
-                        onPress={() => window.open(`${apiBaseUrl}/${link.code}`, "_blank")}
+                        onPress={() => window.open(link.shortUrl, "_blank")}
                         aria-label="Open short URL"
                         className="hover:bg-primary/10 hover:text-primary"
                       >

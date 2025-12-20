@@ -32,11 +32,12 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
 
       const data = await response.json()
       // Backend returns: { id, short_code, original_url, clicks, created_at, updated_at }
+      const frontendUrl = typeof window !== 'undefined' ? window.location.origin : apiBaseUrl
       setDetailedLink({
         id: data.id,
         code: data.short_code,
         url: data.original_url,
-        shortUrl: `${apiBaseUrl}/${data.short_code}`,
+        shortUrl: `${frontendUrl}/${data.short_code}`,
         clicks: data.clicks || 0,
         createdAt: data.created_at,
       })
@@ -99,13 +100,13 @@ export function LinkDetail({ link, apiBaseUrl, onClose }: LinkDetailProps) {
                       className="flex-1 font-mono text-sm"
                       classNames={{ base: "bg-background/50" }}
                     >
-                      {`${apiBaseUrl}/${detailedLink.code}`}
+                      {detailedLink.shortUrl}
                     </Snippet>
                     <Button
                       isIconOnly
                       variant="flat"
                       color="primary"
-                      onPress={() => window.open(`${apiBaseUrl}/${detailedLink.code}`, "_blank")}
+                      onPress={() => window.open(detailedLink.shortUrl, "_blank")}
                       aria-label="Open in new tab"
                     >
                       <ExternalLink className="h-4 w-4" />
