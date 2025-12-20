@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: urlshortener
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Naammmdz@123
+      POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -32,7 +32,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: Naammmdz@123
+      DB_PASSWORD: postgres
       DB_NAME: urlshortener
       DB_SSLMODE: disable
       
@@ -66,8 +66,8 @@ services:
     container_name: url-shortener-frontend
     restart: unless-stopped
     environment:
-      # API_BASE_URL is used by Next.js rewrites (server-side proxy)
-      API_BASE_URL: http://backend:1234
+      # API_BASE_URL is used by Next.js API route proxy (server-side)
+      API_BASE_URL: http://url-shortener-backend:1234
       PORT: 5678
     ports:
       - "5678:5678"
