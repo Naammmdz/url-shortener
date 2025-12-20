@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 	"url-shortener/internal/model"
 	"url-shortener/internal/service"
 
@@ -191,16 +193,19 @@ func (h *URLHandler) ListURLs(c *gin.Context) {
 
 // Helper function to generate anonymous ID (UUID v4)
 func generateAnonymousID() string {
-	// Using a simple UUID v4 generation
-	// In production, use github.com/google/uuid
+	// Generate a random anonymous ID with timestamp and random suffix
 	return "anon-" + generateRandomString(32)
 }
 
 func generateRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	// Seed random with current time
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	result := make([]byte, length)
 	for i := range result {
-		result[i] = charset[i%len(charset)]
+		result[i] = charset[rng.Intn(len(charset))]
 	}
 	return string(result)
 }

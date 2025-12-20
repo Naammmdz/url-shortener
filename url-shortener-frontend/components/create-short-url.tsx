@@ -31,6 +31,12 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
       const accessToken = getCookie("access_token")
       const anonymousId = getAnonymousId()
 
+      console.log('[CreateShortUrl] Before request:', { 
+        hasAccessToken: !!accessToken, 
+        anonymousId,
+        localStorage: typeof window !== 'undefined' ? localStorage.getItem('anonymous_id') : null
+      })
+
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       }
@@ -61,9 +67,19 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
       const data = await response.json()
       // Backend returns: { short_code, short_url, original_url, anonymous_id? }
       
+      console.log('[CreateShortUrl] Response:', { 
+        data,
+        hasAnonymousId: !!data.anonymous_id,
+        currentLocalStorage: localStorage.getItem('anonymous_id')
+      })
+      
       // Save anonymous_id if returned (for first-time anonymous users)
       if (data.anonymous_id) {
+        console.log('[CreateShortUrl] Saving new anonymous_id:', data.anonymous_id)
         setAnonymousId(data.anonymous_id)
+        console.log('[CreateShortUrl] After save:', localStorage.getItem('anonymous_id'))
+      } else {
+        console.log('[CreateShortUrl] No anonymous_id in response, keeping existing:', localStorage.getItem('anonymous_id'))
       }
 
       // Build full short URL - use current origin if backend returns relative path
