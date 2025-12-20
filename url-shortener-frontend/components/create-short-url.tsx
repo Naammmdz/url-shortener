@@ -17,7 +17,8 @@ export function CreateShortUrl({ onLinkCreated }: CreateShortUrlProps) {
   const [shortUrl, setShortUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+  // Use empty string to go through Next.js proxy
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

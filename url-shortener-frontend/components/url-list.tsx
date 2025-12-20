@@ -33,7 +33,8 @@ export function UrlList({ refreshTrigger }: UrlListProps) {
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+  // Use empty string to go through Next.js proxy
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
   useEffect(() => {
     fetchLinks()

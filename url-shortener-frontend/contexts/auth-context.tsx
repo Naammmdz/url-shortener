@@ -4,7 +4,8 @@ import { deleteCookie, getCookie, setCookie } from "@/lib/cookies"
 import type { LoginCredentials, RegisterCredentials, User } from "@/types/auth"
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+// Use empty string to go through Next.js proxy
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
 interface AuthContextType {
   user: User | null
