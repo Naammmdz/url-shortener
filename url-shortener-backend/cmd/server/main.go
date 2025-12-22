@@ -104,10 +104,10 @@ func main() {
 		api.GET("/urls/:code", urlHandler.GetURLInfo)
 	}
 
-	// Get port from environment or default to 1234
+	// Get port from environment or default to 2345
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
-		port = "1234"
+		port = "2345"
 	}
 
 	log.Printf("🚀 Server starting on :%s...", port)

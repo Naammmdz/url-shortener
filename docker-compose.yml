@@ -37,7 +37,7 @@ services:
       DB_SSLMODE: disable
       
       # Server configuration
-      SERVER_PORT: 1234
+      SERVER_PORT: 2345
       GIN_MODE: release
       BASE_URL: https://url.naammmdz.id.vn
       
@@ -47,14 +47,14 @@ services:
       # CORS configuration
       CORS_ALLOWED_ORIGINS: http://localhost:5678,http://frontend:5678,https://url.naammmdz.id.vn
     ports:
-      - "1234:1234"
+      - "2345:2345"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - url-shortener-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:1234/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:2345/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
     environment:
       # API_BASE_URL is used by Next.js API route proxy (server-side)
-      API_BASE_URL: http://url-shortener-backend:1234
+      API_BASE_URL: http://url-shortener-backend:2345
       PORT: 5678
     ports:
       - "5678:5678"
